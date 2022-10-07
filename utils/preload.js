@@ -5,10 +5,12 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI',{
   
-  failedConnection: (callback) => ipcRenderer.on('failed_connection', callback),
-  retryConnection: () => ipcRenderer.invoke('retry_connection'),
-  //openFile: () => ipcRenderer.invoke('dialog:openFile'),
-  //handleCounter: (callback) => ipcRenderer.on('update-counter', callback),
+  failedConnection: (callback) => ipcRenderer.on('splash:failed_connection', callback),
+  retryConnection: () => ipcRenderer.invoke('splash:retry_connection'),
+  showUpdateModal: (callback) => ipcRenderer.on("splash:show_update_modal", callback),
+  opUpdateUrl: (url) => ipcRenderer.invoke('splash:open_update_url', url),
+  continueWithoutUpdate: () => ipcRenderer.invoke('splash:continue_without_update'),
+  
 })
 
 window.addEventListener('DOMContentLoaded', () => {

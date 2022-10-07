@@ -17,10 +17,6 @@ const createWindow = () => {
   let splash_page = new Splash(mainWindow, "splash");
   splash_page.load();
 
-  setTimeout(()=>{
-    mainWindow.webContents.send("failed_connection");
-  }, 2000);
-
 
   // setInterval(()=>{
   //   console.log("update-counter");
@@ -37,10 +33,6 @@ const createWindow = () => {
 app.whenReady().then(() => {
 
   createWindow();
-
-  ipcMain.handle("retry_connection", ()=>{
-    console.log("retrying connection!");
-  });
 
   // ipcMain.handle('dialog:openFile', ()=>{
   //   console.log("hi");

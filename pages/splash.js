@@ -6,26 +6,17 @@ const AddCrouse = require("./addCourse");
 const Network = require("../lib/Network");
 const statics = require("../utils/statics");
 const { getPlatform, getAppVersion } = require("../utils/os");
+const { ipcMain, shell } = require("electron");
 
 class Splash extends Page{
 
-    can_continue = false;
-
     async onStart(){
 
-        setTimeout(()=>{
+        ipcMain.handle("splash:retry_connection", this.retryConnection);
 
-            if(this.can_continue){
-                
-                let addCourse = new AddCrouse(this.mainWindow, "addCourse");
-                addCourse.load();
+        ipcMain.handle("splash:continue_without_update", this.continueWithoutUpdate);
 
-            }else{
-
-                this.can_continue = "proceed";
-            }
-
-        },2000);
+        ipcMain.handle("splash:open_update_url", this.openUpdateUrl)
 
         let fileDirAccess = new FileDirAccess();
         let fileDirAccess_check_res = await fileDirAccess.check();
@@ -43,34 +34,69 @@ class Splash extends Page{
             return;
         }
 
+        setTimeout(()=>{
+            this.checkVersion();
+        }, 1000)
+        
+    }
+
+    onDestroy(){
+
+        console.log("splash window destroyed!");
+    }
+
+    checkVersion = ()=>{
+
         let params = {
             platform: getPlatform(),
             app_version: getAppVersion(),
-        };
+        }; 
 
-        let config = {
-            timeout:500
-        };
-
-        Network.post(statics.urls.CHECK_VERSION, params, config, (err, res)=>{
+        Network.post(statics.urls.CHECK_VERSION, params, {}, (err, res)=>{
 
             if(!err){
-                
-                console.log(res);
 
-                this.can_continue = true;
+                if(res.result_code==statics.SC.SUCCESS){
+
+                    let addCourse = new AddCrouse(this.mainWindow, "addCourse");
+                    addCourse.load();
+
+                }else if(res.result_code==statics.SC.SHOULD_UPDATE){
+
+                    this.mainWindow.webContents.send("splash:show_update_modal", res.data);
+
+                }else{
+                    showError(err);
+                    return;    
+                }
 
             }else if(err == "timeout"){
 
-                console.log("timeout");
+                this.mainWindow.webContents.send("splash:failed_connection");                
 
             }else{
                 showError(err.code);
                 return;
             }
         });
+    }
 
-        
+    retryConnection = ()=>{
+
+        setTimeout(()=>{
+            this.checkVersion();
+        }, 1000);
+    }
+
+    openUpdateUrl = (event, url)=>{
+
+        shell.openExternal(url);
+    }
+
+    continueWithoutUpdate = ()=>{
+
+        let addCourse = new AddCrouse(this.mainWindow, "addCourse");
+        addCourse.load();
     }
 }
 
